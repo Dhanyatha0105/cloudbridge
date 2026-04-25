@@ -1,0 +1,65 @@
+version: '3.8'
+
+# CloudBridge full-stack local development environment
+# Includes: API, Frontend, IoT service, Prometheus, Grafana
+
+services:
+  api:
+    build: ../../backend
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - JWT_SECRET=dev-secret-change-in-prod
+      - REFRESH_TOKEN_SECRET=dev-refresh-secret
+    volumes:
+      - ../../backend/logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build: ../../frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    environment:
+      - REACT_APP_API_URL=http://localhost:4000
+
+  iot-service:
+    build: ../../iot-service
+    ports:
+      - "5000:5000"
+    environment:
+      - IOT_PORT=5000
+      - NODE_ENV=development
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=cloudbridge2026
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  grafana_data:

@@ -1,0 +1,206 @@
+# Azure Arc - Connected Cluster onboarding manifest
+# Registers the on-premises Azure Stack HCI cluster with Azure Arc for unified management
+# Atos Tech Foundations: consistent management across cloud and on-prem
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cloudbridge-prod
+  labels:
+    app: cloudbridge
+    environment: production
+    atos-division: tech-foundations
+    sovereignty: eu-data-residency
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudbridge-config
+  namespace: cloudbridge-prod
+data:
+  ENVIRONMENT: "production"
+  AZURE_ARC_ENABLED: "true"
+  DATA_RESIDENCY: "EU"
+  ZERO_TRUST_ENABLED: "true"
+  D_PLUS_TRACKING: "true"
+  SAP_BTP_REGION: "eu10"
+
+---
+# API Gateway Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudbridge-api
+  namespace: cloudbridge-prod
+  labels:
+    app: cloudbridge-api
+    version: "1.0.0"
+    component: api-gateway
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: cloudbridge-api
+  template:
+    metadata:
+      labels:
+        app: cloudbridge-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "4000"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+      containers:
+        - name: api
+          image: cloudbridge/api:1.0.0
+          ports:
+            - containerPort: 4000
+          envFrom:
+            - configMapRef:
+                name: cloudbridge-config
+            - secretRef:
+                name: cloudbridge-secrets
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloudbridge-api-svc
+  namespace: cloudbridge-prod
+spec:
+  selector:
+    app: cloudbridge-api
+  ports:
+    - port: 80
+      targetPort: 4000
+  type: ClusterIP
+
+---
+# IoT Carbon Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudbridge-iot
+  namespace: cloudbridge-prod
+  labels:
+    app: cloudbridge-iot
+    component: carbon-tracker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cloudbridge-iot
+  template:
+    metadata:
+      labels:
+        app: cloudbridge-iot
+    spec:
+      containers:
+        - name: iot-service
+          image: cloudbridge/iot-service:1.0.0
+          ports:
+            - containerPort: 5000
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+
+---
+# Frontend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudbridge-frontend
+  namespace: cloudbridge-prod
+  labels:
+    app: cloudbridge-frontend
+    component: spa
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cloudbridge-frontend
+  template:
+    metadata:
+      labels:
+        app: cloudbridge-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: cloudbridge/frontend:1.0.0
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+
+---
+# Ingress with TLS (Zero Trust: all traffic encrypted)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cloudbridge-ingress
+  namespace: cloudbridge-prod
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+    - hosts:
+        - cloudbridge.yourorg.com
+      secretName: cloudbridge-tls
+  rules:
+    - host: cloudbridge.yourorg.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: cloudbridge-api-svc
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cloudbridge-frontend-svc
+                port:
+                  number: 80
