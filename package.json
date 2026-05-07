@@ -1,0 +1,14 @@
+{
+  "name": "cloudbridge-hybrid-cloud-platform",
+  "version": "1.0.0",
+  "description": "Sustainable Hybrid-Cloud Modernization Platform — Atos Tech Foundations alignment",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix frontend\" \"npm run dev --prefix backend\" \"npm run dev --prefix iot-service\"",
+    "build": "npm run build --prefix frontend && npm run build --prefix backend",
+    "test": "npm run test --prefix frontend && npm run test --prefix backend",
+    "install:all": "npm install && npm install --prefix frontend && npm install --prefix backend && npm install --prefix iot-service"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
