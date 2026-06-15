@@ -6,7 +6,7 @@ import { Shield, Loader2, Cloud } from 'lucide-react';
 export default function LoginPage() {
   const dispatch = useDispatch();
   const { loading, error } = useSelector(s => s.auth);
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ email: 'engineer@cloudbridge.internal', password: 'demo' });
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -31,6 +31,9 @@ export default function LoginPage() {
             <div className="mt-2 inline-flex items-center gap-1.5 bg-blue-50 text-atos-blue px-3 py-1 rounded-full text-xs font-medium">
               <Shield size={11} />
               Zero Trust · JWT Auth
+            </div>
+            <div className="mt-3 bg-amber-50 border border-amber-200 text-amber-700 text-xs px-3 py-2 rounded-lg">
+              Demo — sample data, no backend. Click <strong>Sign In</strong> (any credentials work).
             </div>
           </div>
 

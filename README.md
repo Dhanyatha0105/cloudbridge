@@ -1,5 +1,7 @@
 # CloudBridge — Sustainable Hybrid-Cloud Modernisation Platform
 
+**Live demo:** https://cloudbridge-opal.vercel.app — _Demo: frontend only, served with bundled sample data (no live backend). Click Sign In (any credentials)._
+
 A production-grade platform that migrates legacy on-premises enterprise workloads to a sustainable hybrid-cloud architecture. Built around real operational concerns: phased low-risk migration, IoT-driven carbon tracking, SAP BTP/CPI integration, and Zero Trust security — all managed from a single ReactJS/Redux dashboard.
 
 ## What it does
