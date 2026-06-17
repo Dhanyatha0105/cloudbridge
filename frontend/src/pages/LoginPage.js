@@ -32,9 +32,6 @@ export default function LoginPage() {
               <Shield size={11} />
               Zero Trust · JWT Auth
             </div>
-            <div className="mt-3 bg-amber-50 border border-amber-200 text-amber-700 text-xs px-3 py-2 rounded-lg">
-              Demo — sample data, no backend. Click <strong>Sign In</strong> (any credentials work).
-            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
